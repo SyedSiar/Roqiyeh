@@ -6,26 +6,37 @@
     <title>Roqiyeh Karimi</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background: #000; color: #fff; height: 100vh; overflow: hidden; }
-        .bg-mesh { position: fixed; inset: 0; background: radial-gradient(at 0% 0%, #00b4d840 0%, #000 60%), radial-gradient(at 100% 100%, #ff4d6d33 0%, #000 60%); z-index: -1; }
-        .wrapper { height: 100vh; display: flex; flex-direction: column; padding: 20px; }
-        .header { padding: 25px; text-align: center; font-weight: 800; font-size: 1.2rem; letter-spacing: 2px; }
-        .control-card { margin-top: auto; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px); border-radius: 35px; padding: 30px; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .prog-container { height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 30px; cursor: pointer; }
+        /* Force fit screen */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; height: 100vh; width: 100vw; overflow: hidden; }
+        
+        .bg-mesh { position: fixed; inset: 0; background: radial-gradient(at 0% 0%, #00b4d840 0%, #000 60%); z-index: -1; }
+        
+        .app-wrapper { height: 100vh; display: flex; flex-direction: column; padding: 20px; justify-content: flex-end; }
+        
+        .header { text-align: center; font-weight: 800; font-size: 1.2rem; letter-spacing: 2px; margin-bottom: 20px; }
+        
+        .control-card { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px); border-radius: 35px; padding: 25px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        .prog-container { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 25px; cursor: pointer; position: relative; }
         #prog-bar { height: 100%; width: 0%; background: #fff; border-radius: 10px; transition: width 0.1s linear; }
+        
         .controls { display: flex; justify-content: center; align-items: center; gap: 40px; margin-bottom: 25px; }
         .btn { background: none; border: none; color: #fff; font-size: 26px; cursor: pointer; }
         .btn-play { font-size: 45px; }
+        
         .lib-trigger { width: 100%; padding: 16px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 18px; color: #fff; font-weight: 600; cursor: pointer; }
-        .panel { position: fixed; bottom: -100%; left: 0; width: 100%; height: 85%; background: #111; border-top-left-radius: 35px; transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100; overflow-y: auto; padding: 25px; }
+        
+        .panel { position: fixed; bottom: -100%; left: 0; width: 100%; height: 90%; background: #111; border-top-left-radius: 35px; border-top-right-radius: 35px; transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100; padding: 20px; display: flex; flex-direction: column; }
         .panel.active { bottom: 0; }
-        .song-item { padding: 20px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border-radius: 18px; cursor: pointer; display: flex; justify-content: space-between; }
+        
+        #list-target { overflow-y: auto; flex-grow: 1; margin-top: 20px; }
+        .song-item { padding: 18px; margin-bottom: 10px; background: rgba(255,255,255,0.05); border-radius: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
     <div class="bg-mesh"></div>
-    <div class="wrapper">
+    <div class="app-wrapper">
         <div class="header">ROQIYEH KARIMI</div>
         <div class="control-card">
             <div class="prog-container" id="prog-hit"><div id="prog-bar"></div></div>
@@ -37,36 +48,52 @@
             <button class="lib-trigger" id="open-lib">LIBRARY</button>
         </div>
     </div>
+
     <div class="panel" id="panel">
-        <button class="btn" id="close-lib" style="margin-bottom:20px"><i class="fas fa-times"></i></button>
+        <button class="btn" id="close-lib" style="align-self: flex-end;"><i class="fas fa-times"></i></button>
         <div id="list-target"></div>
     </div>
+
     <script>
         const audio = new Audio();
-        let idx = 1;
+        let idx = parseInt(localStorage.getItem('lastPlayed')) || 1;
         const playBtn = document.getElementById('play');
         const list = document.getElementById('list-target');
         const panel = document.getElementById('panel');
 
         function playTrack(i) {
             idx = i;
+            audio.pause();
             audio.src = i + '.mp3';
-            audio.play();
+            audio.load();
+            audio.play().catch(() => {});
             playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            localStorage.setItem('lastPlayed', i);
         }
 
+        // Generate Library
         for(let i=1; i<=50; i++) {
             let row = document.createElement('div');
             row.className = 'song-item';
+            row.id = 'song-' + i;
             row.innerHTML = `<span>Track ${i}</span>`;
             row.onclick = () => { playTrack(i); panel.classList.remove('active'); };
             list.appendChild(row);
         }
 
+        // Seeking
+        document.getElementById('prog-hit').onclick = (e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+        };
+
         playBtn.onclick = () => { if(audio.paused) { audio.play(); playBtn.innerHTML = '<i class="fas fa-pause"></i>'; } else { audio.pause(); playBtn.innerHTML = '<i class="fas fa-play"></i>'; } };
         document.getElementById('next').onclick = () => playTrack(idx < 50 ? idx + 1 : 1);
         document.getElementById('prev').onclick = () => playTrack(idx > 1 ? idx - 1 : 50);
-        document.getElementById('open-lib').onclick = () => panel.classList.add('active');
+        document.getElementById('open-lib').onclick = () => {
+            panel.classList.add('active');
+            document.getElementById('song-'+idx).scrollIntoView({ block: 'center' });
+        };
         document.getElementById('close-lib').onclick = () => panel.classList.remove('active');
         audio.ontimeupdate = () => document.getElementById('prog-bar').style.width = (audio.currentTime/audio.duration)*100 + '%';
     </script>
